@@ -2,7 +2,7 @@
 
 **Review Resources:**
 
-- None beyond the code repositories
+- [Circom-rln](https://github.com/Rate-Limiting-Nullifier/circom-rln)
 
 **Auditors:**
 
@@ -25,7 +25,7 @@
 
 RLN (Rate-Limiting Nullifier) is a zk-gadget/protocol that enables spam prevention mechanism for anonymous environments.
 
-The circuits of [RLN](https://github.com/Rate-Limiting-Nullifier/circom-rln) were reviewed over 12 days. The code review was performed between 31st May and 12th June, 2023. The repository was under active development during the review, but the review was limited to the latest commit at the start of the review. This was commit [37073131b9](https://github.com/Rate-Limiting-Nullifier/circom-rln/tree/37073131b9c5910228ad6bdf0fc50080e507166a) for the circom-rln repo.
+The circuits of [RLN](https://github.com/Rate-Limiting-Nullifier/circom-rln) were reviewed over 15 days. The code review was performed between 31st May and 14th June, 2023. The repository was under active development during the review, but the review was limited to the latest commit at the start of the review. This was commit [37073131b9](https://github.com/Rate-Limiting-Nullifier/circom-rln/tree/37073131b9c5910228ad6bdf0fc50080e507166a) for the circom-rln repo.
 
 ## Scope
 
@@ -47,15 +47,11 @@ Code Evaluation Matrix
 
 | Category                 | Mark    | Description |
 | ------------------------ | ------- | ----------- |
-| Access Control           | Good | TODO |
-| Mathematics              | Good | TODO |
-| Complexity               | Good | TODO |
-| Libraries                | Average | TODO |
-| Decentralization         | Good | TODO |
-| Code stability           | Good    | TODO |
-| Documentation            | Low | TODO |
-| Monitoring               | Average | TODO |
-| Testing and verification | Average | TODO  |
+| Cryptography             | Good    | To hash the secret values, Poseidon hash function has been used. This uses fewer constraints per bit compared to other functions lowering down the time consumed |
+| Libraries                | Good    | The circuits use the defacto circomlib which has been audited multiple times |
+| Circuit Dependence Graph | Good    | The signals in the circuit are properly constrained with a well formed CDG |
+| Documentation            | Low     | The documentation is outdated and needs refactoring |
+| Proof Systems            | Good    | The docs recommend generating proofs using Groth16 using a BN254 curve, which has security level of 128 bits|
 
 ## Findings Explanation
 
@@ -130,6 +126,8 @@ function register(uint256 identityCommitment, uint256 amount) external {
         ...
     }
 ```
-## Final remarks
 
-TODO
+### Other low Impact issues
+
+- Missing range checks for `x` & `externalNullifier`
+
