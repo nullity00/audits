@@ -127,7 +127,9 @@ function register(uint256 identityCommitment, uint256 amount) external {
     }
 ```
 
-### Other low Impact issues
+### Informational findings
 
 - Missing range checks for `x` & `externalNullifier`
+- Restoring the polynomial for Shamir's Secret Sharing Scheme gives ``f(x) = 0`` for same messages sent more than once . As in this case ``x1 = x2 = x3 ...``. The protocol does fall short of preventing spam here but would be a perfect fit for low-limit messaging platforms `eg. voting`.
+- The prime field in circom is ~ 2**254 whereas solidity supports 256-bit integers. There is a possibility of users registering using the ``identityCommitment`` & another hash ``A`` such that ``A mod p = identityCommitment`` where p is the prime field of circom. Here, the user registers twice using the same ``identitySecret``. 
 
