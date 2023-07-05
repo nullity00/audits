@@ -17,19 +17,32 @@
 - [High Findings](#high-findings)
 - [Medium Findings](#medium-findings)
 - [Low Findings](#low-findings)
-- [Final remarks](#final-remarks)
+- [Informational Findings](#informational-findings)
 
 ## Review Summary
 
 **Spartan ECDSA**
 
-Spartan-ecdsa (which to our knowledge) is the fastest open-source method to verify ECDSA (secp256k1) signatures in zero-knowledge.
+Spartan-ecdsa (which to our knowledge) is the fastest open-source method to verify ECDSA (secp256k1) signatures in zero-knowledge. [Spartan](https://github.com/microsoft/Spartan) is a high-speed zero-knowledge proof system which does not require trusted setup. Spartan uses [curve25519-dalek](https://docs.rs/curve25519-dalek) for arithmetic over ristretto255 whereas ``spartan-ecdsa`` uses the secp256k1 curve with the following [params](https://neuromancer.sk/std/secg/secp256k1#).
+```
+p (base field) = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f
+q (generator order) = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+```
 
 The code was reviewed over 17 days. The code review was performed between 19th June and 5th July, 2023. The repository was under active development during the review, but the review was limited to the latest commit at the start of the review. This was commit [3386b30d9b](https://github.com/personaelabs/spartan-ecdsa/tree/3386b30d9b5b62d8a60735cbeab42bfe42e80429) for the circom-rln repo.
 
 ## Scope
 
-All the code except ``to_address/*``, ``eff_ecdsa_to_addr.circom`` and ``addr_membership.circom``
+The following circom files are in scope!
+```
+eff_ecdsa.circom
+tree.circom
+add.circom
+double.circom
+mul.circom
+poseidon.circom
+pubkey_membership.circom
+```
 
 The findings were presented to Personae Labs team.
 
@@ -37,6 +50,19 @@ This review is a code review to identify potential vulnerabilities in the code. 
 
 yAcademy and the auditors make no warranties regarding the security of the code and do not warrant that the code is free from defects. yAcademy and the auditors do not represent nor imply to third parties that the code has been audited nor that the code is free from defects. By deploying or using the code, Personae Labs and users of the contracts agree to use the code at their own risk.
 
+Code Breakdown Matrix
+---
+
+| Section                 | Mark    | Description |
+| ------------------------ | ------- | ----------- |
+| benchmark                | Good    | Typescript files to prove public key membership & address membership in web browser & local environment |
+| circuit_reader           | Good    | Circom Circuit reader written in Rust to read r1cs files, constraint vectors etc. |
+| circuits                 | Good    | Consists an implementation of Poseidon hash function, ecdsa membership, address & public key verification & addition, multiplication, doubling of secp256k1 curve points as specified in [Halo2 book](https://zcash.github.io/halo2/design/gadgets/ecc.html) in circom |
+| lib                      | Good    | Membership Prover & Verifier Classes written in typescript |
+| poseidon                 | Good    | Rust implementation of Poseidon over the base field of secp256k1 & contains sagemath files to produce parameters |
+| secq256k1                | Good    | Rust implementation of secp256k1 curve for big int & 256 bit numbers |
+| spartan_wasm             | Good    | Wasm Module in Rust to generate proof & verify using Spartan |
+| Spartan-secq             | Good    | Modified version of the original spartan with curve secp256k1 |
 
 Code Evaluation Matrix
 ---
@@ -44,10 +70,12 @@ Code Evaluation Matrix
 | Category                 | Mark    | Description |
 | ------------------------ | ------- | ----------- |
 | Cryptography             | Good    | To hash the secret values, Poseidon hash function has been used. This uses fewer constraints per bit compared to other functions lowering down the time consumed |
-| Libraries                | Good    | The circuits use the defacto circomlib which has been audited multiple times |
+| Libraries                | Good    | The circuits use the defacto circomlib |
 | Circuit Dependence Graph | Good    | The signals in the circuit are properly constrained with a well formed CDG |
-| Documentation            | Low     | The documentation is outdated and needs refactoring |
-| Proof Systems            | Good    | The docs recommend generating proofs using Groth16 using a BN254 curve, which has security level of 128 bits|
+| Documentation            | Good     | The documentation is clear & concise |
+| Proof Systems            | Good    | Proof generation is done using Spartan-secq using a secp256k1 curve, which has security level of 128 bits|
+
+
 
 ## Findings Explanation
 
@@ -60,72 +88,47 @@ Findings are broken down into sections by their respective impact:
 ---
 
 ## Critical Findings
-
 None.
 
 ## High Findings
-
 None
 
 ## Medium Findings
-
 None.
 
 ## Low Findings
+None.
 
-### 1. Low - Under constrained userMessageLimit
+## Informational Findings
 
-In [utils.circom](https://github.com/Rate-Limiting-Nullifier/circom-rln/blob/37073131b9c5910228ad6bdf0fc50080e507166a/circuits/utils.circom#LL40C1-L40C64), the signal ``limit`` is under constrained.
-
-**Suggested Solution**
+File : [circuits/eff_ecdsa_membership/secp256k1/mul.circom](https://github.com/personaelabs/spartan-ecdsa/blob/3386b30d9b5b62d8a60735cbeab42bfe42e80429/packages/circuits/eff_ecdsa_membership/secp256k1/mul.circom#L66)
 ```
-template RangeCheck(LIMIT_BIT_SIZE) {
-    assert(LIMIT_BIT_SIZE < 253);
+    var bits = 256;
+    component PComplete[bits-3]; 
+    component accComplete[3];
 
-    signal input messageId;
-    signal input limit;
-
-    signal bitCheck[LIMIT_BIT_SIZE] <== Num2Bits(LIMIT_BIT_SIZE)(messageId);
-    signal limitCheck[LIMIT_BIT_SIZE] <== Num2Bits(LIMIT_BIT_SIZE)(limit);
-    signal rangeCheck <== LessThan(LIMIT_BIT_SIZE)([messageId, limit]);
-    rangeCheck === 1;
-}
+    for (var i = 0; i < 3; i++) {
+        PComplete[i] = Secp256k1AddComplete(); // (Acc + P)
 ```
+Theres an over allocation of components here. ``component PComplete[3]`` would suffice.
 
-### **2. Low - Incosistency between contract and the circuit on the number of bits for userMessageLimit**
+File : [circuits/eff_ecdsa_membership/secp256k1/mul.circom](https://github.com/personaelabs/spartan-ecdsa/blob/3386b30d9b5b62d8a60735cbeab42bfe42e80429/packages/circuits/eff_ecdsa_membership/secp256k1/mul.circom#L35)
+```
+    component PIncomplete[bits-3]; 
+    component accIncomplete[bits];
 
-**RLN.sol**
+    for (var i = 0; i < bits-3; i++) {
+        if (i == 0) {
+            PIncomplete[i] = Secp256k1AddIncomplete(); // (Acc + P)
+            ...
+            accIncomplete[i] = Secp256k1AddIncomplete(); // (Acc + P) + Acc
 ```
-uint256 messageLimit = amount / MINIMAL_DEPOSIT;
-```
-**rln.circom**
-```
-template RLN(DEPTH, LIMIT_BIT_SIZE) {
-...
-    // messageId range check
-    RangeCheck(LIMIT_BIT_SIZE)(messageId, userMessageLimit);
-...
-}
-component main { public [x, externalNullifier] } = RLN(20, 16);
-```
-In [RLN.sol](https://github.com/Rate-Limiting-Nullifier/rln-contracts/blob/465579c872edbc03f8044f17926180d82f5abd56/src/RLN.sol#L121), the ``messageLimit`` can take upto ``2**256 - 1`` values whereas ``messageId`` & ``userMessageLimit`` values in [circuits](https://github.com/Rate-Limiting-Nullifier/circom-rln/blob/37073131b9c5910228ad6bdf0fc50080e507166a/circuits/rln.circom) is restricted to ``2**16 - 1`` .
+Theres an over allocation of components here. Since the loop runs for ``bits-3`` times, ``component accIncomplete[bits-3]`` would be the correct declaration of components.
 
-**Recommended solution**
 
-- RLN.sol
-```
-function register(uint256 identityCommitment, uint256 amount) external {
-        ...
-        uint256 messageLimit = amount / MINIMAL_DEPOSIT;
-        require( messageLimit <= type(uint16).max , "Max amount of message limit is 65535");
-        token.safeTransferFrom(msg.sender, address(this), amount);
-        ...
-    }
-```
 
-### Informational findings
 
-- Missing range checks for `x` & `externalNullifier`
-- Restoring the polynomial for Shamir's Secret Sharing Scheme gives ``f(x) = 0`` for same messages sent more than once . As in this case ``x1 = x2 = x3 ...``. The protocol does fall short of preventing spam here but would be a perfect fit for low-limit messaging platforms `eg. voting`.
-- The prime field in circom is ~ 2**254 whereas solidity supports 256-bit integers. There is a possibility of users registering using the ``identityCommitment`` & another hash ``A`` such that ``A mod p = identityCommitment`` where p is the prime field of circom. Here, the user registers twice using the same ``identitySecret``. 
+
+
+
 
