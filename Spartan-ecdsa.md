@@ -93,7 +93,9 @@ None.
 ## High Findings
 
  - Under constrained circuits compromising the soundness of the system
- File : [packages/circuits/eff_ecdsa_membership/secp256k1/mul.circom](https://github.com/personaelabs/spartan-ecdsa/blob/3386b30d9b5b62d8a60735cbeab42bfe42e80429/packages/circuits/eff_ecdsa_membership/secp256k1/mul.circom#L123)
+
+
+``File`` : [packages/circuits/eff_ecdsa_membership/secp256k1/mul.circom](https://github.com/personaelabs/spartan-ecdsa/blob/3386b30d9b5b62d8a60735cbeab42bfe42e80429/packages/circuits/eff_ecdsa_membership/secp256k1/mul.circom#L123)
 
 ```
     signal slo <-- s & (2 ** (128) - 1);
@@ -158,7 +160,9 @@ None.
 
 ## Informational Findings
 
-File : [circuits/eff_ecdsa_membership/secp256k1/mul.circom](https://github.com/personaelabs/spartan-ecdsa/blob/3386b30d9b5b62d8a60735cbeab42bfe42e80429/packages/circuits/eff_ecdsa_membership/secp256k1/mul.circom#L66)
+**1. Over allocation of components**
+
+``File`` : [circuits/eff_ecdsa_membership/secp256k1/mul.circom](https://github.com/personaelabs/spartan-ecdsa/blob/3386b30d9b5b62d8a60735cbeab42bfe42e80429/packages/circuits/eff_ecdsa_membership/secp256k1/mul.circom#L66)
 ```
     var bits = 256;
     component PComplete[bits-3]; 
@@ -167,7 +171,12 @@ File : [circuits/eff_ecdsa_membership/secp256k1/mul.circom](https://github.com/p
     for (var i = 0; i < 3; i++) {
         PComplete[i] = Secp256k1AddComplete(); // (Acc + P)
 ```
-Theres an over allocation of components here. ``component PComplete[3]`` would suffice.
+**Recommended Solution**
+```
+component PComplete[3]
+```
+
+**2. Over allocation of components**
 
 File : [circuits/eff_ecdsa_membership/secp256k1/mul.circom](https://github.com/personaelabs/spartan-ecdsa/blob/3386b30d9b5b62d8a60735cbeab42bfe42e80429/packages/circuits/eff_ecdsa_membership/secp256k1/mul.circom#L35)
 ```
@@ -180,7 +189,7 @@ File : [circuits/eff_ecdsa_membership/secp256k1/mul.circom](https://github.com/p
             ...
             accIncomplete[i] = Secp256k1AddIncomplete(); // (Acc + P) + Acc
 ```
-Theres an over allocation of components here. Since the loop runs for ``bits-3`` times, ``component accIncomplete[bits-3]`` would be the correct declaration of components.
+Since the loop runs for ``bits-3`` times, ``component accIncomplete[bits-3]`` would be the correct declaration of components.
 
 
 
