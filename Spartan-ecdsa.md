@@ -23,7 +23,7 @@
 
 **Spartan ECDSA**
 
-Spartan-ecdsa (which to our knowledge) is the fastest open-source method to verify ECDSA (secp256k1) signatures in zero-knowledge. [Spartan](https://github.com/microsoft/Spartan) is a high-speed zero-knowledge proof system which does not require trusted setup. Spartan uses [curve25519-dalek](https://docs.rs/curve25519-dalek) for arithmetic over ristretto255 whereas ``spartan-ecdsa`` uses the secp256k1 curve with the following [params](https://neuromancer.sk/std/secg/secp256k1#).
+Spartan-ecdsa (which to our knowledge) is the fastest open-source method to verify ECDSA (secp256k1) signatures in zero-knowledge. [Spartan](https://github.com/microsoft/Spartan) is a high-speed zero-knowledge proof system which does not require trusted setup. Spartan uses [curve25519-dalek](https://docs.rs/curve25519-dalek) for arithmetic over ristretto255 whereas ``spartan-ecdsa`` uses the secp256k1 curve with the following params. Ref [1](https://neuromancer.sk/std/secg/secp256k1#) [2](https://www.secg.org/sec2-v2.pdf)
 ```
 p (base field) = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f
 q (generator order) = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
