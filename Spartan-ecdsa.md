@@ -107,49 +107,9 @@ The signals slo & shi are underconstrained.
 **Recommended Solution**
 
 ```
-template bitwiseAND(n){
-  signal input a;
-  signal input b;
-  signal output out;
-  component n2ba = Num2Bits(n);
-  n2ba.in <== a;
-  component n2bb = Num2Bits(n);
-  n2bb.in <== b;
-  signal bits[n];
-  for (var i = 0; i < n; i++) {
-    bits[i] <== n2ba.out[i] * n2bb.out[i];
-  }
-  component b2n = Bits2Num(n);
-  b2n.in <== bits;
-  out <== b2n.out;
-}
-
-template RightShift(b, shift) {
-  assert(shift < b);
-  signal input x;
-  signal output y;
-  component x_bits = Num2Bits(b);
-  x_bits.in <== x;
-  signal y_bits[ b - shift ];
-  for (var i = 0; i < b - shift; i++) {
-    y_bits[i] <== x_bits.out[i + shift];
-  }
-  component y_num = Bits2Num(b - shift);
-  y_num.in <== y_bits;
-  y <== y_num.out;
-}
-
-template K() {
-    ....
-    signal temp <== (2 ** (128) - 1);
-    component and = bitwiseAND(256);
-    and.a <== temp;
-    and.b <== s;
-    signal slo <== and.out;
-    component shright = RightShift(256, 128);
-    shright.x <== s;
-    signal shi <== shright.y;
-    ...
+    signal slo <-- s & (2 ** (128) - 1);
+    signal shi <-- s >> 128;
+    slo + shi * 2 ** 128 === s;
 ```
 
 ## Medium Findings
