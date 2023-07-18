@@ -104,13 +104,14 @@ None.
 
 The signals slo & shi are underconstrained.
 
-**Recommended Solution**
+**Developer Response**
 
 ```
     signal slo <-- s & (2 ** (128) - 1);
     signal shi <-- s >> 128;
     slo + shi * 2 ** 128 === s;
 ```
+Adding the line ``slo + shi * 2 ** 128 === s;`` would fix this, but it turns out that actually, that calculation of ``k = (s + tQ) % q`` doesn't have to be constrained at all (so the entire template K is unnecessary). Regardless, your discovery made me realize ``K`` is unnecessary, which results in solid constraint count reduction!
 
 ## Medium Findings
 None.
